@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Response & Emergency Resource Coordination Portal</title>
+    <style>
+        :root { --primary: #0284c7; --danger: #dc2626; --warning: #d97706; --success: #16a34a; --bg: #f8fafc; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        header { background: #0f172a; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .alert-banner { background: var(--danger); color: white; padding: 12px; border-radius: 6px; font-weight: bold; margin-bottom: 20px; display: none; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); }
+        .card.danger { border-left-color: var(--danger); }
+        .card h3 { margin: 0 0 5px 0; font-size: 0.9rem; color: #64748b; text-transform: uppercase; }
+        .card p { margin: 0; font-size: 1.8rem; font-weight: bold; }
+        .controls { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        select, button { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; cursor: pointer; }
+        button { background: var(--primary); color: white; border: none; font-weight: 500; }
+        button:hover { opacity: 0.9; }
+        .priority-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .section-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 10px; color: #0f172a; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; font-weight: 600; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .badge.critical { background: #fef2f2; color: var(--danger); }
+        .badge.high { background: #fff7ed; color: var(--warning); }
+        .badge.medium { background: #f0fdf4; color: var(--success); }
+        .badge.open { background: #f0f9ff; color: var(--primary); }
+        .badge.resolved { background: #f0fdf4; color: var(--success); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>District Emergency Resource Coordination Portal</h2>
+        <div id="live-clock"></div>
+    </header>
+
+    <div id="critical-alert" class="alert-banner">CRITICAL NOTICE: Evacuation Centre capacities have exceeded safe limits (>90% Occupancy)!</div>
+
+    <div class="analytics-grid">
+        <div class="card"><h3>Open Incidents</h3><p id="count-open">0</p></div>
+        <div class="card"><h3>Resolved Incidents</h3><p id="count-resolved">0</p></div>
+        <div class="card"><h3>Available Rescue Teams</h3><p id="count-teams">4</p></div>
+        <div class="card danger"><h3>Replenishments Needed</h3><p id="count-replenish">0</p></div>
+    </div>
+
+    <div class="priority-box" id="highest-priority-incident">
+        <!-- Dynamic content Injection -->
+    </div>
+
+    <div class="controls">
+        <label for="severity-filter"><strong>Filter Dashboard by Severity:</strong></label>
+        <select id="severity-filter" onchange="renderDashboard()">
+            <option value="ALL">Show All Levels</option>
+            <option value="Critical">Critical Only</option>
+            <option value="High">High Only</option>
+            <option value="Medium">Medium Only</option>
+        </select>
+        <button onclick="triggerSimulation()">Simulate Live Incidents & Resource Dispatches</button>
+    </div>
+
+    <div class="section-title">Reported Emergency Incidents</div>
+    <table id="incidents-table">
+        <thead>
+            <tr>
+                <th>Incident ID</th>
+                <th>Affected Location</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>Reported Time</th>
+                <th>Assigned Response Team</th>
+                <th>Resolution Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="section-title">Active Evacuation Centres & Supply Inventories</div>
+    <table id="centres-table">
+        <thead>
+            <tr>
+                <th>Centre Name</th>
+                <th>Current Occupancy</th>
+                <th>Available Capacity</th>
+                <th>Occupancy Rate</th>
+                <th>Relief Supply Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // Core Simulated Application Datastore
+        let incidents = [
+            { id: "INC-2026-01", location: "Sector 4 Riverbanks", category: "Flash Flood", severity: "Critical", time: "10:15 AM", team: "NDRF Team A", status: "Open" },
+            { id: "INC-2026-02", location: "Bridge Point Highway", category: "Structural Failure", severity: "Critical", time: "10:42 AM", team: "SDRF Unit 2", status: "Open" },
+            { id: "INC-2026-03", location: "Metro Station Underpass", category: "Waterlogging", severity: "High", time: "11:05 AM", team: "Local Fire Service", status: "Open" },
+            { id: "INC-2026-04", location: "Down Town Residential Block C", category: "Power Failure", severity: "Medium", time: "11:30 AM", team: "Municipal Engineer Corp", status: "Resolved" },
+            { id: "INC-2026-05", location: "North Hillside Slopes", category: "Mudslide Risk", severity: "High", time: "11:58 AM", team: "NDRF Team B", status: "Open" }
+        ];
+
+        let evacuationCentres = [
+            { name: "St. Jude Community Hall", occupancy: 460, capacity: 500, supplies: "Adequate" },
+            { name: "Government Boys Higher Secondary School", occupancy: 120, capacity: 400, supplies: "Low Stock - Food Kits" },
+            { name: "Sports Complex Indoor Stadium", occupancy: 890, capacity: 950, supplies: "Adequate" }
+        ];
+
+        function renderDashboard() {
+            const filter = document.getElementById('severity-filter').value;
+            
+            // 1. Analytical Metric Calculations
+            const openCount = incidents.filter(i => i.status === "Open").length;
+            const resolvedCount = incidents.filter(i => i.status === "Resolved").length;
+            document.getElementById('count-open').innerText = openCount;
+            document.getElementById('count-resolved').innerText = resolvedCount;
+            
+            const lowStockCount = evacuationCentres.filter(c => c.supplies.includes("Low Stock")).length;
+            document.getElementById('count-replenish').innerText = lowStockCount;
+
+            // 2. Incident Log Population
+            const incidentBody = document.querySelector('#incidents-table tbody');
+            incidentBody.innerHTML = '';
+            
+            incidents.forEach(inc => {
+                if (filter !== "ALL" && inc.severity !== filter) return;
+                
+                const row = `<tr>
+                    <td><strong>${inc.id}</strong></td>
+                    <td>${inc.location}</td>
+                    <td>${inc.category}</td>
+                    <td><span class="badge ${inc.severity.toLowerCase()}">${inc.severity}</span></td>
+                    <td>${inc.time}</td>
+                    <td>${inc.team}</td>
+                    <td><span class="badge ${inc.status.toLowerCase()}">${inc.status}</span></td>
+                </tr>`;
+                incidentBody.innerHTML += row;
+            });
+
+            // 3. Highest Priority Evaluation Engine
+            const priorityBox = document.getElementById('highest-priority-incident');
+            const criticalOpenIncidents = incidents.filter(i => i.status === "Open" && i.severity === "Critical");
+            const highOpenIncidents = incidents.filter(i => i.status === "Open" && i.severity === "High");
+            const topIncident = criticalOpenIncidents[0] || highOpenIncidents[0] || incidents.filter(i => i.status === "Open")[0];
+
+            if (topIncident) {
+                priorityBox.innerHTML = `
+                    <div style="font-weight:bold; color:var(--danger); font-size:1.1rem; margin-bottom:5px;">⚠️ HIGHEST PRIORITY ESCALATION ACTIVE</div>
+                    <strong>Incident:</strong> ${topIncident.id} (${topIncident.category}) at <strong>${topIncident.location}</strong><br>
+                    <strong>Deployment Status:</strong> En-route via ${topIncident.team}. Immediate backup vehicles requested.
+                `;
+            } else {
+                priorityBox.innerHTML = `<strong>Status Clear:</strong> No unassigned critical emergency operations active at this time.`;
+            }
+
+            // 4. Evacuation Center Visual Engine
+            const centreBody = document.querySelector('#centres-table tbody');
+            centreBody.innerHTML = '';
+            let triggerGlobalAlert = false;
+
+            evacuationCentres.forEach(c => {
+                const totalCap = c.occupancy + c.capacity;
+                const rate = ((c.occupancy / totalCap) * 100).toFixed(1);
+                if (parseFloat(rate) > 90.0) triggerGlobalAlert = true;
+
+                const row = `<tr>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.occupancy} Personnel</td>
